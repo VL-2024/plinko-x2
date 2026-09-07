@@ -13,6 +13,9 @@ window.X2_GAME_CONFIG = {
 
   // Интерфейс как в Чуко.
   autoPlayCounts: [5, 10, 20, 50],
+  ballCounts: [1, 5, 10, 15],
+  defaultBallCount: 1,
+  ballLaunchGapMs: 95,
   localTicketHistoryLimit: 5,
   audio: {
     soundEnabled: true,

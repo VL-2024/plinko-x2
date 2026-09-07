@@ -55,17 +55,33 @@ https://dev.superloto.kg/api/Lotto.Users.cls?Method=PayTicket&gameId=137&amount=
 
 ## Scenarios
 
+При выборе **1 шара** сохраняется исходная схема:
+
 - `scenario:1` → ячейка 1 (крайняя слева)
 - ...
 - `scenario:9` → ячейка 9 (крайняя справа)
 
-В REAL frontend не вычисляет приз и не заменяет scenario.
+При выборе 5/10/15 шаров `scenario` и `win` остаются результатом одного билета LMS, а frontend распределяет несколько шаров по допустимой комбинации ячеек. Денежный `win` не пересчитывается и не заменяется frontend.
+
+
+## Количество шаров
+
+`1 / 5 / 10 / 15` — это локальная настройка Plinko и **не новый параметр LMS**.
+
+Одна `Новая игра` всегда вызывает один обычный `PayTicket`, независимо от количества шаров. Например:
+
+- номинал 50 сом;
+- выбрано 10 шаров;
+- LMS получает один `PayTicket&amount=50`;
+- frontend визуализирует 10 шаров внутри возвращённого билета.
+
+Количество шаров не передаётся в `PayTicket`, поэтому LMS-адаптер Чуко / Алтын Хана по основному контракту не меняется. Для интерфейсных событий frontend дополнительно указывает `ballCount`, а в `X2_GAME_ROUND_COMPLETE` также может передать `ballDistribution` как номера визуальных ячеек 1..9.
 
 ## Автоигра
 
 Дополнительного LMS endpoint не требуется.
 
-Каждый раунд автоигры вызывает обычный `PayTicket` отдельно. Следующий билет запрашивается только после завершения визуализации предыдущего.
+Каждый раунд автоигры вызывает обычный `PayTicket` отдельно. Выбранные 5/10/15 шаров остаются внутри этого одного билета. Следующий билет запрашивается только после завершения визуализации предыдущего.
 
 При `Стоп` уже купленный/запущенный билет завершается, новый `PayTicket` не отправляется.
 
@@ -82,8 +98,9 @@ https://dev.superloto.kg/api/Lotto.Users.cls?Method=PayTicket&gameId=137&amount=
 - `X2_GAME_READY`
 - `X2_GAME_BALANCE_LOADED`
 - `X2_GAME_DENOMINATION_CHANGED`
-- `X2_GAME_TICKET_READY`
-- `X2_GAME_ROUND_COMPLETE`
+- `X2_GAME_BALLS_CHANGED`
+- `X2_GAME_TICKET_READY` (`ballCount`)
+- `X2_GAME_ROUND_COMPLETE` (`ballCount`, `ballDistribution`)
 - `X2_GAME_MODE_CHANGED`
 - `X2_GAME_HELP_REQUEST`
 - `X2_GAME_ERROR`

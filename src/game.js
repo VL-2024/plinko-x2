@@ -7,6 +7,8 @@
   const autoBtn = document.getElementById('autoBtn');
   const autoMenu = document.getElementById('autoMenu');
   const denomsEl = document.getElementById('denoms');
+  const ballsLabelEl = document.getElementById('ballsLabel');
+  const ballsCountsEl = document.getElementById('ballsCounts');
   const balanceEl = document.getElementById('balance');
   const balanceLabelEl = document.getElementById('balanceLabel');
   const stakeLabelEl = document.getElementById('stakeLabel');
@@ -32,24 +34,27 @@
     ? CFG.autoPlayCounts.map(Number).filter(n => Number.isInteger(n) && n > 0)
     : [5,10,20,50];
   const HISTORY_LIMIT = Number(CFG.localTicketHistoryLimit || 5);
+  const BALL_COUNTS = Array.isArray(CFG.ballCounts) && CFG.ballCounts.length
+    ? CFG.ballCounts.map(Number).filter(n => Number.isInteger(n) && n > 0 && n <= 30)
+    : [1,5,10,15];
 
   const I18N = {
     RU: {
-      balance:'Баланс', stake:'Номинал', newGame:'НОВАЯ ИГРА', auto:'АВТОИГРА', start:'СТАРТ', stop:'СТОП', stopping:'ОСТАНОВКА', loading:'Загрузка…',
-      buying:'Получаем билет…', dropping:'Шар падает…', ticket:'Билет', win:'Выигрыш', noWin:'Без выигрыша', error:'Не удалось начать игру', insufficient:'Недостаточно средств',
+      balance:'Баланс', stake:'Номинал', balls:'Шары', newGame:'НОВАЯ ИГРА', auto:'АВТОИГРА', start:'СТАРТ', stop:'СТОП', stopping:'ОСТАНОВКА', loading:'Загрузка…',
+      buying:'Получаем билет…', dropping:'Шар падает…', droppingMany:'Падают шары…', ticket:'Билет', win:'Выигрыш', noWin:'Без выигрыша', error:'Не удалось начать игру', insufficient:'Недостаточно средств',
       info:'Инфо', payouts:'Таблица выплат', how:'Как играть', tickets:'Мои билеты', soundOn:'Звук вкл', soundOff:'Звук выкл', musicOn:'Музыка вкл', musicOff:'Музыка выкл',
       slot:'Ячейка', noTickets:'Завершённых билетов пока нет.', realRequires:'REAL доступен при запуске игры из LMS.', modeError:'Не удалось переключить режим.',
-      how1:'Выберите номинал билета.', how2:'Нажмите «Новая игра».', how3:'LMS формирует билет и заранее возвращает сценарий и выигрыш.', how4:'Шар автоматически падает в ячейку, соответствующую сценарию LMS.', how5:'После падения показывается результат и обновляется баланс.',
-      payoutNote:'В REAL денежный результат всегда приходит из LMS. Таблица показывает множители ячеек для визуального поля.',
+      how1:'Выберите номинал билета и количество шаров: 1, 5, 10 или 15.', how2:'Нажмите «Новая игра».', how3:'LMS формирует один билет и заранее возвращает сценарий и общий выигрыш.', how4:'Plinko внутри этого одного билета распределяет выбранное количество шаров по ячейкам. Траектория каждого шара визуально случайная, но общий результат соответствует билету LMS.', how5:'После падения последнего шара показывается общий результат и обновляется баланс.',
+      payoutNote:'В REAL денежный результат всегда приходит из LMS. При нескольких шарах это по-прежнему один билет; игра распределяет шары так, чтобы визуальный итог соответствовал выигрышу билета.',
       autoplayHint:'Автоигра последовательно покупает и показывает выбранное количество билетов. «Стоп» завершает текущий билет и не запускает следующий.'
     },
     KG: {
-      balance:'Баланс', stake:'Номинал', newGame:'ЖАҢЫ ОЮН', auto:'АВТООЮН', start:'СТАРТ', stop:'ТОКТОТ', stopping:'ТОКТОТУУ', loading:'Жүктөлүүдө…',
-      buying:'Билет алынууда…', dropping:'Шар түшүп жатат…', ticket:'Билет', win:'Утуш', noWin:'Утуш жок', error:'Оюн башталган жок', insufficient:'Каражат жетишсиз',
+      balance:'Баланс', stake:'Номинал', balls:'Шарлар', newGame:'ЖАҢЫ ОЮН', auto:'АВТООЮН', start:'СТАРТ', stop:'ТОКТОТ', stopping:'ТОКТОТУУ', loading:'Жүктөлүүдө…',
+      buying:'Билет алынууда…', dropping:'Шар түшүп жатат…', droppingMany:'Шарлар түшүп жатат…', ticket:'Билет', win:'Утуш', noWin:'Утуш жок', error:'Оюн башталган жок', insufficient:'Каражат жетишсиз',
       info:'Инфо', payouts:'Төлөмдөр', how:'Кантип ойнойт', tickets:'Менин билеттерим', soundOn:'Үн күйүк', soundOff:'Үн өчүк', musicOn:'Музыка күйүк', musicOff:'Музыка өчүк',
       slot:'Уяча', noTickets:'Аяктаган билеттер азырынча жок.', realRequires:'REAL режими LMS аркылуу иштетилгенде жеткиликтүү.', modeError:'Режимди которуу мүмкүн болгон жок.',
-      how1:'Билеттин номиналын тандаңыз.', how2:'«Жаңы оюн» баскычын басыңыз.', how3:'LMS билетти түзүп, сценарий менен утушту алдын ала кайтарат.', how4:'Шар LMS сценарийине туура келген уячага автоматтык түрдө түшөт.', how5:'Түшкөндөн кийин жыйынтык көрсөтүлүп, баланс жаңыртылат.',
-      payoutNote:'REAL режиминде акчалай жыйынтык ар дайым LMSтен келет. Таблица талаадагы уячалардын көбөйткүчтөрүн көрсөтөт.',
+      how1:'Билеттин номиналын жана шарлардын санын тандаңыз: 1, 5, 10 же 15.', how2:'«Жаңы оюн» баскычын басыңыз.', how3:'LMS бир билетти түзүп, сценарий менен жалпы утушту алдын ала кайтарат.', how4:'Plinko ошол бир билеттин ичинде шарларды уячаларга бөлүштүрөт. Ар бир шардын жолу туш келди көрүнөт, бирок жалпы жыйынтык LMS билетине туура келет.', how5:'Акыркы шар түшкөндөн кийин жалпы жыйынтык көрсөтүлүп, баланс жаңыртылат.',
+      payoutNote:'REAL режиминде акчалай жыйынтык ар дайым LMSтен келет. Бир нече шар тандалса да бул бир билет бойдон калат; оюн шарларды билеттин жалпы утушуна шайкеш бөлүштүрөт.',
       autoplayHint:'Автооюн тандалган сандагы билеттерди кезек менен сатып алып көрсөтөт. «Токтот» учурдагы билетти аяктап, кийинкисин баштабайт.'
     }
   };
@@ -64,12 +69,15 @@
   let currentMode = 'demo';
   let state = 'boot';
   let currentTicket = null;
-  let ball = null;
-  let path = null;
+  let selectedBallCount = BALL_COUNTS.includes(Number(CFG.defaultBallCount)) ? Number(CFG.defaultBallCount) : BALL_COUNTS[0];
+  let balls = [];
+  let roundDistribution = [];
+  let slotLandingCounts = Array(SLOTS).fill(0);
+  let activeRows = new Set();
+  let slotFlashUntil = Array(SLOTS).fill(0);
   let animStart = 0;
   let animDuration = 2300;
-  let highlightRow = -1;
-  let lastSoundRow = -1;
+  let lastPegSoundAt = 0;
   let currentInfoTab = 'payouts';
 
   const auto = {
@@ -122,6 +130,7 @@
     const busy = isBusy();
     newGameBtn.disabled = busy || auto.running;
     [...denomsEl.children].forEach(b => b.disabled = busy || auto.running);
+    [...ballsCountsEl.children].forEach(b => b.disabled = busy || auto.running);
     realBtn.disabled = busy || auto.running;
     demoBtn.disabled = busy || auto.running;
     autoBtn.disabled = state === 'boot' || (!auto.running && ['requesting','dropping'].includes(state));
@@ -145,6 +154,7 @@
   function renderHeader() {
     balanceLabelEl.textContent = tr('balance');
     stakeLabelEl.textContent = tr('stake');
+    ballsLabelEl.textContent = tr('balls');
     balanceEl.textContent = `${fmt(balance)} ${currencyDisplay}`;
     infoTitle.textContent = tr('info');
     renderActionLabels();
@@ -169,6 +179,26 @@
         });
       });
       denomsEl.appendChild(b);
+    });
+  }
+
+  function renderBallCounts() {
+    ballsCountsEl.innerHTML = '';
+    BALL_COUNTS.forEach(n => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'ball-count' + (Number(n) === Number(selectedBallCount) ? ' active' : '');
+      b.textContent = String(n);
+      b.disabled = isBusy() || auto.running;
+      b.addEventListener('click', () => {
+        if (!['idle','settled','error'].includes(state) || auto.running) return;
+        selectedBallCount = Number(n);
+        renderBallCounts();
+        window.X2LMS.emit('X2_GAME_BALLS_CHANGED', {
+          gameId, ballCount:selectedBallCount, denomination:stake, currency, language
+        });
+      });
+      ballsCountsEl.appendChild(b);
     });
   }
 
@@ -221,8 +251,8 @@
   }
 
   function slotMultiplier(i) {
-    if (currentTicket && currentTicket.scenario === i+1) return Number(currentTicket.multiplier || 0);
-    const a = Array.isArray(CFG.demoMultipliers) ? CFG.demoMultipliers : [10,2,.5,0,.2,0,.5,2,10];
+    const a = Array.isArray(CFG.demoMultipliers) && CFG.demoMultipliers.length === SLOTS
+      ? CFG.demoMultipliers : [10,2,.5,0,.2,0,.5,2,10];
     return Number(a[i] ?? 0);
   }
 
@@ -247,21 +277,23 @@
       const y = m.boardTop + r*m.rowGap;
       for (let j=0;j<=r;j++) {
         const x = m.cx + (j-r/2)*m.gap;
-        const active = r === highlightRow;
+        const active = activeRows.has(r);
         ctx.beginPath();
-        ctx.arc(x,y,active ? 7 : 5.4,0,Math.PI*2);
+        ctx.arc(x,y,active ? 6.5 : 5.4,0,Math.PI*2);
         ctx.fillStyle = active ? '#DBE63C' : 'rgba(255,255,255,.92)';
-        ctx.shadowColor = active ? 'rgba(219,230,60,.65)' : 'rgba(255,255,255,.28)';
-        ctx.shadowBlur = active ? 15 : 6;
+        ctx.shadowColor = active ? 'rgba(219,230,60,.55)' : 'rgba(255,255,255,.28)';
+        ctx.shadowBlur = active ? 12 : 6;
         ctx.fill();
         ctx.shadowBlur = 0;
       }
     }
 
+    const now = performance.now();
     const slotW = m.gap * .86;
     for (let i=0;i<SLOTS;i++) {
       const x = m.cx + (i-(SLOTS-1)/2)*m.gap;
-      const selected = currentTicket && currentTicket.scenario === i+1 && state === 'settled';
+      const count = Number(slotLandingCounts[i] || 0);
+      const selected = count > 0 && (state === 'settled' || slotFlashUntil[i] > now);
       const x0 = x-slotW/2;
       roundRect(x0,m.slotY,slotW,m.slotH,10);
       ctx.fillStyle = selected ? '#DBE63C' : 'rgba(255,255,255,.10)';
@@ -271,10 +303,17 @@
       ctx.fillStyle = selected ? '#273287' : '#fff';
       ctx.font = `900 ${Math.max(13,Math.min(18,slotW*.28))}px Inter,system-ui,sans-serif`;
       ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText(fmtMult(slotMultiplier(i)),x,m.slotY+m.slotH/2);
+      ctx.fillText(fmtMult(slotMultiplier(i)),x,m.slotY+m.slotH/2 + (count > 1 ? 5 : 0));
+      if (count > 1) {
+        ctx.font = `900 ${Math.max(9,Math.min(11,slotW*.18))}px Inter,system-ui,sans-serif`;
+        ctx.fillText(`● ${count}`, x, m.slotY + 12);
+      }
     }
 
-    if (ball) drawBall(ball.x, ball.y, ball.r || 10);
+    for (const b of balls) {
+      if (!b.visible) continue;
+      drawBall(b.x, b.y, b.r || 9);
+    }
   }
 
   function roundRect(x,y,w,h,r) {
@@ -289,24 +328,27 @@
     grad.addColorStop(.22,'#eef68b');
     grad.addColorStop(1,'#DBE63C');
     ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
-    ctx.fillStyle=grad;ctx.shadowColor='rgba(219,230,60,.7)';ctx.shadowBlur=18;ctx.fill();ctx.shadowBlur=0;
+    ctx.fillStyle=grad;ctx.shadowColor='rgba(219,230,60,.62)';ctx.shadowBlur=14;ctx.fill();ctx.shadowBlur=0;
   }
 
-  function buildPath(slotIndex) {
+  function buildPath(slotIndex, randomness=Math.random()) {
     const m = boardMetrics();
     const steps = Array(slotIndex).fill(1).concat(Array(ROWS-slotIndex).fill(0));
     for (let i=steps.length-1;i>0;i--) {
       const j = Math.floor(Math.random()*(i+1)); [steps[i],steps[j]]=[steps[j],steps[i]];
     }
     let rights = 0;
-    const pts = [{x:m.cx,y:m.boardTop-m.rowGap*.78,row:-1}];
+    const startJitter = (Math.random()-.5) * Math.min(12,m.gap*.22);
+    const pts = [{x:m.cx+startJitter,y:m.boardTop-m.rowGap*.78,row:-1}];
     for (let r=0;r<ROWS;r++) {
       rights += steps[r];
-      const x = m.cx + (rights-(r+1)/2)*m.gap;
+      const localJitter = (Math.random()-.5) * Math.min(7,m.gap*.12);
+      const x = m.cx + (rights-(r+1)/2)*m.gap + localJitter;
       const y = m.boardTop + r*m.rowGap + m.rowGap*.55;
       pts.push({x,y,row:r});
     }
     pts.push({x:m.cx+(slotIndex-(SLOTS-1)/2)*m.gap,y:m.slotY-12,row:ROWS});
+    pts.wiggleSeed = randomness * 9.71 + Math.random()*4;
     return pts;
   }
 
@@ -317,9 +359,77 @@
     const u = f-i;
     const a=pts[i], b=pts[i+1];
     const ease = u<.5 ? 2*u*u : 1-Math.pow(-2*u+2,2)/2;
-    const x = a.x+(b.x-a.x)*ease + Math.sin(u*Math.PI)*Math.sin((i+1)*2.37)*3.2;
-    const y = a.y+(b.y-a.y)*u - Math.sin(u*Math.PI)*4.5;
+    const seed = Number(pts.wiggleSeed || 1);
+    const x = a.x+(b.x-a.x)*ease + Math.sin(u*Math.PI)*Math.sin((i+1)*2.37+seed)*3.4;
+    const y = a.y+(b.y-a.y)*u - Math.sin(u*Math.PI)*(4.0 + (seed%2));
     return {x,y,row:b.row};
+  }
+
+  function buildReachable(count, values) {
+    const reachable = Array.from({length:count+1},()=>new Set());
+    reachable[0].add(0);
+    for (let n=1;n<=count;n++) {
+      for (const prev of reachable[n-1]) {
+        for (const v of values) reachable[n].add(prev+v);
+      }
+    }
+    return reachable;
+  }
+
+  function shuffled(a) {
+    const x = a.slice();
+    for (let i=x.length-1;i>0;i--) {
+      const j=Math.floor(Math.random()*(i+1)); [x[i],x[j]]=[x[j],x[i]];
+    }
+    return x;
+  }
+
+  function chooseVisualDistribution(ticket, count) {
+    if (count === 1) return [Math.max(0,Math.min(SLOTS-1,Number(ticket.scenario||1)-1))];
+    const multipliers = Array.from({length:SLOTS},(_,i)=>slotMultiplier(i));
+    const units = multipliers.map(v=>Math.round(v*10));
+    const reachable = buildReachable(count, units);
+    const denom = Number(ticket.denomination || stake || 0);
+    const officialMult = denom > 0 && Number.isFinite(Number(ticket.win))
+      ? Number(ticket.win)/denom
+      : Number(ticket.multiplier || slotMultiplier(Math.max(0,Number(ticket.scenario||1)-1)));
+    let target = Math.round(officialMult * count * 10);
+
+    // Если реальный LMS вернёт необычный размер выигрыша, сначала ищем ближайший
+    // достижимый визуальный итог. Сам денежный результат всё равно берётся только из LMS.
+    if (!reachable[count].has(target)) {
+      const scenarioMult = slotMultiplier(Math.max(0,Math.min(SLOTS-1,Number(ticket.scenario||1)-1)));
+      const scenarioTarget = Math.round(scenarioMult * count * 10);
+      if (reachable[count].has(scenarioTarget)) target = scenarioTarget;
+      else {
+        let best = null;
+        for (const x of reachable[count]) {
+          const d = Math.abs(x-target);
+          if (!best || d < best.d) best = {x,d};
+        }
+        target = best ? best.x : 0;
+      }
+    }
+
+    let remaining = target;
+    const slotUse = Array(SLOTS).fill(0);
+    const result = [];
+    for (let left=count;left>0;left--) {
+      let candidates = [];
+      for (let slot=0;slot<SLOTS;slot++) {
+        const v = units[slot];
+        if (remaining-v < 0) continue;
+        if (reachable[left-1].has(remaining-v)) candidates.push(slot);
+      }
+      if (!candidates.length) candidates = [Math.max(0,Math.min(SLOTS-1,Number(ticket.scenario||1)-1))];
+      // Предпочитаем менее использованные симметричные ячейки, но оставляем случайность.
+      candidates = shuffled(candidates).sort((a,b)=>slotUse[a]-slotUse[b] + (Math.random()-.5)*.35);
+      const chosen = candidates[0];
+      result.push(chosen);
+      slotUse[chosen]++;
+      remaining -= units[chosen];
+    }
+    return shuffled(result);
   }
 
   function ensureAudio() {
@@ -389,27 +499,65 @@
 
   function startDrop(ticket) {
     currentTicket = ticket;
-    path = buildPath(ticket.scenario-1);
-    ball = { ...path[0], r:10 };
-    highlightRow = -1;
-    lastSoundRow = -1;
+    roundDistribution = chooseVisualDistribution(ticket, selectedBallCount);
+    slotLandingCounts = Array(SLOTS).fill(0);
+    slotFlashUntil = Array(SLOTS).fill(0);
+    activeRows = new Set();
+    lastPegSoundAt = 0;
     animStart = performance.now();
+    const launchGap = Math.max(55, Number(CFG.ballLaunchGapMs || 95));
+    const radius = selectedBallCount >= 15 ? 7.2 : selectedBallCount >= 10 ? 8 : 9.5;
+    balls = roundDistribution.map((slotIndex,i) => {
+      const path = buildPath(slotIndex,Math.random());
+      const delay = i * launchGap + Math.random()*Math.min(55,launchGap*.6);
+      const duration = animDuration * (.88 + Math.random()*.26);
+      return {
+        slotIndex,
+        path,
+        launchAt:animStart+delay,
+        duration,
+        x:path[0].x,
+        y:path[0].y,
+        r:radius,
+        visible:false,
+        landed:false,
+        row:-1,
+        lastSoundRow:-1
+      };
+    });
     setState('dropping');
-    setStatus(tr('dropping'));
+    setStatus(selectedBallCount > 1 ? `${tr('droppingMany')} ${selectedBallCount}` : tr('dropping'));
     requestAnimationFrame(animateDrop);
   }
 
   function animateDrop(now) {
-    const t = Math.min(1,(now-animStart)/animDuration);
-    const p = samplePath(path,t);
-    ball.x=p.x;ball.y=p.y;
-    highlightRow = p.row >=0 && p.row<ROWS ? p.row : -1;
-    if (highlightRow >= 0 && highlightRow !== lastSoundRow) {
-      lastSoundRow = highlightRow;
-      playPegSound(highlightRow);
+    activeRows = new Set();
+    let allDone = true;
+    for (const b of balls) {
+      if (now < b.launchAt) { allDone = false; continue; }
+      b.visible = true;
+      const t = Math.min(1,(now-b.launchAt)/b.duration);
+      const p = samplePath(b.path,t);
+      b.x=p.x;b.y=p.y;b.row=p.row;
+      if (p.row >= 0 && p.row < ROWS && t < 1) activeRows.add(p.row);
+      if (p.row >= 0 && p.row < ROWS && p.row !== b.lastSoundRow && now-lastPegSoundAt > 38) {
+        b.lastSoundRow = p.row;
+        lastPegSoundAt = now;
+        playPegSound(p.row);
+      }
+      if (t < 1) {
+        allDone = false;
+      } else if (!b.landed) {
+        b.landed = true;
+        const m=boardMetrics();
+        b.x=m.cx+(b.slotIndex-(SLOTS-1)/2)*m.gap;
+        b.y=m.slotY-12 - Math.min(slotLandingCounts[b.slotIndex],3)*2.2;
+        slotLandingCounts[b.slotIndex] += 1;
+        slotFlashUntil[b.slotIndex] = now + 360;
+      }
     }
     drawBoard();
-    if (t<1) requestAnimationFrame(animateDrop);
+    if (!allDone) requestAnimationFrame(animateDrop);
     else finishRound();
   }
 
@@ -423,15 +571,12 @@
   function saveHistory(ticket, mode=currentMode) {
     if (!ticket?.ticketId) return;
     const list = getHistory(mode).filter(x => x && x.ticketId !== ticket.ticketId);
-    list.unshift({ticketId:String(ticket.ticketId),win:Number(ticket.win||0)});
+    list.unshift({ticketId:String(ticket.ticketId),win:Number(ticket.win||0),ballCount:selectedBallCount});
     try { localStorage.setItem(historyKey(mode), JSON.stringify(list.slice(0,HISTORY_LIMIT))); } catch (_) {}
   }
 
   function finishRound() {
-    highlightRow=-1;
-    const m=boardMetrics();
-    const slot=currentTicket.scenario-1;
-    ball={x:m.cx+(slot-(SLOTS-1)/2)*m.gap,y:m.slotY-14,r:10};
+    activeRows = new Set();
     if (Number.isFinite(Number(currentTicket.balance))) balance=Number(currentTicket.balance);
     renderHeader();
     setState('settled');
@@ -453,7 +598,9 @@
       win,
       balance,
       currency,
-      language
+      language,
+      ballCount:selectedBallCount,
+      ballDistribution:roundDistribution.map(i=>i+1)
     });
 
     if (auto.running) {
@@ -486,11 +633,11 @@
       if (t.currencyDisplay) currencyDisplay=String(t.currencyDisplay);
       if (t.language) language=String(t.language).toUpperCase()==='KG'?'KG':'RU';
       if (Number.isFinite(Number(t.denomination))) stake=Number(t.denomination);
-      renderHeader(); renderDenoms();
+      renderHeader(); renderDenoms(); renderBallCounts();
       ticketEl.textContent=`${tr('ticket')}: ${t.ticketId}`;
       window.X2LMS.emit('X2_GAME_TICKET_READY', {
         gameId, ticketId:t.ticketId, scenario:t.scenario,
-        denomination:stake, currency, language
+        denomination:stake, currency, language, ballCount:selectedBallCount
       });
       startDrop(t);
     } catch (err) {
@@ -548,9 +695,11 @@
       setState('boot');
       setStatus('');
       currentTicket = null;
-      ball = null;
-      path = null;
-      highlightRow = -1;
+      balls = [];
+      roundDistribution = [];
+      slotLandingCounts = Array(SLOTS).fill(0);
+      slotFlashUntil = Array(SLOTS).fill(0);
+      activeRows = new Set();
       resultEl.classList.remove('show');
       resultEl.textContent = '';
       ticketEl.textContent = `${tr('ticket')}: —`;
@@ -559,7 +708,7 @@
       balance = Number(b.balance);
       if (b.currency) currency=String(b.currency).toUpperCase();
       if (b.currencyDisplay) currencyDisplay=String(b.currencyDisplay);
-      renderHeader(); renderDenoms(); renderModeButtons();
+      renderHeader(); renderDenoms(); renderBallCounts(); renderModeButtons();
       setState('idle');
       drawBoard();
       window.X2LMS.emit('X2_GAME_MODE_CHANGED', {gameId, mode:currentMode.toUpperCase(), currency, language});
@@ -609,7 +758,7 @@
     const list = getHistory(currentMode);
     infoContent.innerHTML = `
       <h3>${escapeHtml(tr('tickets'))} · ${currentMode.toUpperCase()}</h3>
-      ${list.length ? `<div class="ticket-list">${list.map(x=>`<div class="ticket-row"><span>${escapeHtml(x.ticketId)}</span><strong>${escapeHtml(fmt(x.win))}</strong></div>`).join('')}</div>` : `<p class="muted">${escapeHtml(tr('noTickets'))}</p>`}`;
+      ${list.length ? `<div class="ticket-list">${list.map(x=>`<div class="ticket-row"><span>${escapeHtml(x.ticketId)}${x.ballCount ? ` · ${escapeHtml(x.ballCount)} шар.` : ''}</span><strong>${escapeHtml(fmt(x.win))}</strong></div>`).join('')}</div>` : `<p class="muted">${escapeHtml(tr('noTickets'))}</p>`}`;
   }
 
   function openInfo() {
@@ -625,6 +774,7 @@
   async function initGame() {
     setState('boot');
     renderAutoMenu();
+    renderBallCounts();
     drawBoard();
     try {
       window.X2LMS.emit('X2_GAME_READY', { gameId });
@@ -641,7 +791,7 @@
       balance=Number(b.balance);
       if(b.currency) currency=String(b.currency).toUpperCase();
       if(b.currencyDisplay) currencyDisplay=String(b.currencyDisplay);
-      renderHeader();renderDenoms();renderModeButtons();renderInfoTabs();
+      renderHeader();renderDenoms();renderBallCounts();renderModeButtons();renderInfoTabs();
       setState('idle');
       window.X2LMS.emit('X2_GAME_BALANCE_LOADED', {
         gameId,balance,currency,currencyDisplay,language,denominations

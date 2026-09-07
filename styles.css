@@ -37,8 +37,9 @@ button{font:inherit}
 .auto-menu[hidden]{display:none}
 .auto-menu button{height:40px;border:1px solid rgba(255,255,255,.15);border-radius:10px;background:rgba(255,255,255,.08);color:#fff;font-weight:900;cursor:pointer}
 .auto-menu button:hover{background:rgba(219,230,60,.16);border-color:rgba(219,230,60,.5)}
-.denom-wrap{display:flex;align-items:center;gap:10px}.denom-label{font-size:12px;opacity:.68;min-width:62px}.denoms{display:flex;gap:7px;flex-wrap:wrap;flex:1}
-.denom{appearance:none;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;border-radius:11px;padding:8px 13px;font-weight:900;min-width:56px;cursor:pointer}.denom.active{background:var(--lime);color:var(--blue);border-color:transparent}.denom:disabled{opacity:.45;cursor:default}
+.selectors-row{display:flex;flex-direction:column;gap:8px}
+.denom-wrap,.balls-wrap{display:flex;align-items:center;gap:10px}.denom-label,.balls-label{font-size:12px;opacity:.68;min-width:62px}.denoms,.balls-counts{display:flex;gap:7px;flex-wrap:wrap;flex:1}
+.denom,.ball-count{appearance:none;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;border-radius:11px;padding:8px 13px;font-weight:900;min-width:56px;cursor:pointer}.denom.active,.ball-count.active{background:var(--lime);color:var(--blue);border-color:transparent}.denom:disabled,.ball-count:disabled{opacity:.45;cursor:default}
 .lowerbar{display:grid;grid-template-columns:minmax(0,3fr) minmax(120px,2fr);gap:9px;align-items:center}
 .toolbar{display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:wrap}
 .mode-toggle{display:flex;border:1px solid rgba(255,255,255,.16);border-radius:10px;overflow:hidden;background:rgba(255,255,255,.06)}
