@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="format-detection" content="telephone=no" />
+  <title>PLINKO — X2 LOTO</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app" id="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="x2">X2</div>
+        <div>
+          <div class="title">PLINKO</div>
+          <div class="subtitle">X2 LOTO</div>
+        </div>
+      </div>
+      <div class="balance-card">
+        <span id="balanceLabel">Баланс</span>
+        <strong id="balance">—</strong>
+      </div>
+    </header>
+
+    <section class="board-card">
+      <canvas id="board" width="720" height="920" aria-label="Plinko board"></canvas>
+      <div class="result" id="result" aria-live="polite"></div>
+    </section>
+
+    <section class="controls">
+      <div class="denom-wrap">
+        <div class="denom-label" id="stakeLabel">Номинал</div>
+        <div class="denoms" id="denoms"></div>
+      </div>
+
+      <button id="playBtn" class="play" type="button">БРОСИТЬ</button>
+
+      <div class="meta">
+        <span id="modeBadge">DEMO</span>
+        <span id="ticketId">Билет: —</span>
+      </div>
+      <div class="status" id="status"></div>
+    </section>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="lms-adapter.js"></script>
+  <script src="src/game.js"></script>
+</body>
+</html>
