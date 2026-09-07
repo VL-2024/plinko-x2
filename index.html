@@ -31,20 +31,50 @@
     </section>
 
     <section class="controls">
+      <div class="action-row">
+        <button id="newGameBtn" class="action-btn primary" type="button">НОВАЯ ИГРА</button>
+        <div class="auto-wrap">
+          <button id="autoBtn" class="action-btn secondary" type="button">АВТОИГРА</button>
+          <div id="autoMenu" class="auto-menu" hidden></div>
+        </div>
+      </div>
+
       <div class="denom-wrap">
         <div class="denom-label" id="stakeLabel">Номинал</div>
         <div class="denoms" id="denoms"></div>
       </div>
 
-      <button id="playBtn" class="play" type="button">БРОСИТЬ</button>
-
-      <div class="meta">
-        <span id="modeBadge">DEMO</span>
-        <span id="ticketId">Билет: —</span>
+      <div class="lowerbar">
+        <div class="toolbar">
+          <div class="mode-toggle" aria-label="Режим игры">
+            <button id="realBtn" type="button">REAL</button>
+            <button id="demoBtn" type="button">DEMO</button>
+          </div>
+          <button id="infoBtn" class="tool-btn" type="button">ⓘ <span>Инфо</span></button>
+          <button id="soundBtn" class="tool-btn" type="button" aria-pressed="true">🔊 <span>Звук</span></button>
+          <button id="musicBtn" class="tool-btn" type="button" aria-pressed="false">♫ <span>Музыка</span></button>
+        </div>
+        <div class="ticket" id="ticketId">Билет: —</div>
       </div>
+
       <div class="status" id="status"></div>
     </section>
   </main>
+
+  <div id="infoModal" class="modal-backdrop" hidden>
+    <section class="info-panel" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+      <div class="info-head">
+        <strong id="infoTitle">Инфо</strong>
+        <button id="infoClose" class="close-btn" type="button" aria-label="Закрыть">×</button>
+      </div>
+      <div class="info-tabs" id="infoTabs">
+        <button type="button" data-tab="payouts" class="active">Таблица выплат</button>
+        <button type="button" data-tab="how">Как играть</button>
+        <button type="button" data-tab="tickets">Мои билеты</button>
+      </div>
+      <div id="infoContent" class="info-content"></div>
+    </section>
+  </div>
 
   <script src="config.js"></script>
   <script src="lms-adapter.js"></script>

@@ -3,7 +3,9 @@
 
   const canvas = document.getElementById('board');
   const ctx = canvas.getContext('2d');
-  const playBtn = document.getElementById('playBtn');
+  const newGameBtn = document.getElementById('newGameBtn');
+  const autoBtn = document.getElementById('autoBtn');
+  const autoMenu = document.getElementById('autoMenu');
   const denomsEl = document.getElementById('denoms');
   const balanceEl = document.getElementById('balance');
   const balanceLabelEl = document.getElementById('balanceLabel');
@@ -11,25 +13,44 @@
   const resultEl = document.getElementById('result');
   const statusEl = document.getElementById('status');
   const ticketEl = document.getElementById('ticketId');
-  const modeBadge = document.getElementById('modeBadge');
+  const realBtn = document.getElementById('realBtn');
+  const demoBtn = document.getElementById('demoBtn');
+  const infoBtn = document.getElementById('infoBtn');
+  const soundBtn = document.getElementById('soundBtn');
+  const musicBtn = document.getElementById('musicBtn');
+  const infoModal = document.getElementById('infoModal');
+  const infoClose = document.getElementById('infoClose');
+  const infoTabs = document.getElementById('infoTabs');
+  const infoContent = document.getElementById('infoContent');
+  const infoTitle = document.getElementById('infoTitle');
 
   const ROWS = 8;
   const SLOTS = 9;
   const CFG = window.X2_GAME_CONFIG || {};
   const URL_PARAMS = new URLSearchParams(location.search);
+  const AUTO_COUNTS = Array.isArray(CFG.autoPlayCounts) && CFG.autoPlayCounts.length
+    ? CFG.autoPlayCounts.map(Number).filter(n => Number.isInteger(n) && n > 0)
+    : [5,10,20,50];
+  const HISTORY_LIMIT = Number(CFG.localTicketHistoryLimit || 5);
 
   const I18N = {
     RU: {
-      balance:'Баланс', stake:'Номинал', play:'БРОСИТЬ', loading:'Загрузка…',
-      buying:'Получаем билет…', dropping:'Шар падает…', ticket:'Билет',
-      win:'Выигрыш', noWin:'Без выигрыша', error:'Не удалось начать игру',
-      insufficient:'Недостаточно средств'
+      balance:'Баланс', stake:'Номинал', newGame:'НОВАЯ ИГРА', auto:'АВТОИГРА', start:'СТАРТ', stop:'СТОП', stopping:'ОСТАНОВКА', loading:'Загрузка…',
+      buying:'Получаем билет…', dropping:'Шар падает…', ticket:'Билет', win:'Выигрыш', noWin:'Без выигрыша', error:'Не удалось начать игру', insufficient:'Недостаточно средств',
+      info:'Инфо', payouts:'Таблица выплат', how:'Как играть', tickets:'Мои билеты', soundOn:'Звук вкл', soundOff:'Звук выкл', musicOn:'Музыка вкл', musicOff:'Музыка выкл',
+      slot:'Ячейка', noTickets:'Завершённых билетов пока нет.', realRequires:'REAL доступен при запуске игры из LMS.', modeError:'Не удалось переключить режим.',
+      how1:'Выберите номинал билета.', how2:'Нажмите «Новая игра».', how3:'LMS формирует билет и заранее возвращает сценарий и выигрыш.', how4:'Шар автоматически падает в ячейку, соответствующую сценарию LMS.', how5:'После падения показывается результат и обновляется баланс.',
+      payoutNote:'В REAL денежный результат всегда приходит из LMS. Таблица показывает множители ячеек для визуального поля.',
+      autoplayHint:'Автоигра последовательно покупает и показывает выбранное количество билетов. «Стоп» завершает текущий билет и не запускает следующий.'
     },
     KG: {
-      balance:'Баланс', stake:'Номинал', play:'ЫРГЫТУУ', loading:'Жүктөлүүдө…',
-      buying:'Билет алынууда…', dropping:'Шар түшүп жатат…', ticket:'Билет',
-      win:'Утуш', noWin:'Утуш жок', error:'Оюн башталган жок',
-      insufficient:'Каражат жетишсиз'
+      balance:'Баланс', stake:'Номинал', newGame:'ЖАҢЫ ОЮН', auto:'АВТООЮН', start:'СТАРТ', stop:'ТОКТОТ', stopping:'ТОКТОТУУ', loading:'Жүктөлүүдө…',
+      buying:'Билет алынууда…', dropping:'Шар түшүп жатат…', ticket:'Билет', win:'Утуш', noWin:'Утуш жок', error:'Оюн башталган жок', insufficient:'Каражат жетишсиз',
+      info:'Инфо', payouts:'Төлөмдөр', how:'Кантип ойнойт', tickets:'Менин билеттерим', soundOn:'Үн күйүк', soundOff:'Үн өчүк', musicOn:'Музыка күйүк', musicOff:'Музыка өчүк',
+      slot:'Уяча', noTickets:'Аяктаган билеттер азырынча жок.', realRequires:'REAL режими LMS аркылуу иштетилгенде жеткиликтүү.', modeError:'Режимди которуу мүмкүн болгон жок.',
+      how1:'Билеттин номиналын тандаңыз.', how2:'«Жаңы оюн» баскычын басыңыз.', how3:'LMS билетти түзүп, сценарий менен утушту алдын ала кайтарат.', how4:'Шар LMS сценарийине туура келген уячага автоматтык түрдө түшөт.', how5:'Түшкөндөн кийин жыйынтык көрсөтүлүп, баланс жаңыртылат.',
+      payoutNote:'REAL режиминде акчалай жыйынтык ар дайым LMSтен келет. Таблица талаадагы уячалардын көбөйткүчтөрүн көрсөтөт.',
+      autoplayHint:'Автооюн тандалган сандагы билеттерди кезек менен сатып алып көрсөтөт. «Токтот» учурдагы билетти аяктап, кийинкисин баштабайт.'
     }
   };
 
@@ -40,6 +61,7 @@
   let stake = 50;
   let balance = null;
   let gameId = URL_PARAMS.get('gameId') || CFG.gameId || 'PLINKO';
+  let currentMode = 'demo';
   let state = 'boot';
   let currentTicket = null;
   let ball = null;
@@ -47,6 +69,24 @@
   let animStart = 0;
   let animDuration = 2300;
   let highlightRow = -1;
+  let lastSoundRow = -1;
+  let currentInfoTab = 'payouts';
+
+  const auto = {
+    selected: null,
+    running: false,
+    total: 0,
+    completed: 0,
+    stopRequested: false,
+    timer: null
+  };
+
+  const audioCfg = CFG.audio || {};
+  let soundEnabled = loadBool('x2_plinko_sound', audioCfg.soundEnabled !== false);
+  let musicEnabled = loadBool('x2_plinko_music', !!audioCfg.musicEnabled);
+  let audioCtx = null;
+  let musicTimer = null;
+  let musicStep = 0;
 
   function tr(k) { return (I18N[language] || I18N.RU)[k] || k; }
   function fmt(n) {
@@ -57,21 +97,59 @@
     const x = Number(n || 0);
     return Number.isInteger(x) ? `×${x}` : `×${String(Math.round(x*100)/100).replace('.', ',')}`;
   }
-
+  function escapeHtml(v) {
+    return String(v ?? '').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
+  }
   function setStatus(text='') { statusEl.textContent = text; }
+  function loadBool(key, fallback) {
+    try {
+      const v = localStorage.getItem(key);
+      return v == null ? fallback : v === '1';
+    } catch (_) { return fallback; }
+  }
+  function saveBool(key, value) {
+    try { localStorage.setItem(key, value ? '1' : '0'); } catch (_) {}
+  }
+
+  function isBusy() { return ['boot','requesting','dropping'].includes(state); }
+
   function setState(next) {
     state = next;
-    const busy = ['boot','requesting','dropping'].includes(state);
-    playBtn.disabled = busy;
-    [...denomsEl.children].forEach(b => b.disabled = busy);
-    playBtn.textContent = state === 'boot' ? tr('loading') : tr('play');
+    renderControlsState();
+  }
+
+  function renderControlsState() {
+    const busy = isBusy();
+    newGameBtn.disabled = busy || auto.running;
+    [...denomsEl.children].forEach(b => b.disabled = busy || auto.running);
+    realBtn.disabled = busy || auto.running;
+    demoBtn.disabled = busy || auto.running;
+    autoBtn.disabled = state === 'boot' || (!auto.running && ['requesting','dropping'].includes(state));
+    if (busy) autoMenu.hidden = true;
+    renderActionLabels();
+  }
+
+  function renderActionLabels() {
+    newGameBtn.textContent = state === 'boot' ? tr('loading') : tr('newGame');
+    autoBtn.classList.toggle('running', auto.running);
+    if (auto.running) {
+      const prefix = auto.stopRequested ? tr('stopping') : tr('stop');
+      autoBtn.textContent = `${prefix} ${auto.completed}/${auto.total}`;
+    } else if (auto.selected) {
+      autoBtn.textContent = `${tr('start')} ${auto.selected}`;
+    } else {
+      autoBtn.textContent = tr('auto');
+    }
   }
 
   function renderHeader() {
     balanceLabelEl.textContent = tr('balance');
     stakeLabelEl.textContent = tr('stake');
     balanceEl.textContent = `${fmt(balance)} ${currencyDisplay}`;
-    playBtn.textContent = state === 'boot' ? tr('loading') : tr('play');
+    infoTitle.textContent = tr('info');
+    renderActionLabels();
+    renderAudioButtons();
+    renderModeButtons();
   }
 
   function renderDenoms() {
@@ -81,9 +159,9 @@
       b.type = 'button';
       b.className = 'denom' + (Number(v) === Number(stake) ? ' active' : '');
       b.textContent = fmt(v);
-      b.disabled = ['boot','requesting','dropping'].includes(state);
+      b.disabled = isBusy() || auto.running;
       b.addEventListener('click', () => {
-        if (!['idle','settled','error'].includes(state)) return;
+        if (!['idle','settled','error'].includes(state) || auto.running) return;
         stake = Number(v);
         renderDenoms();
         window.X2LMS.emit('X2_GAME_DENOMINATION_CHANGED', {
@@ -92,6 +170,36 @@
       });
       denomsEl.appendChild(b);
     });
+  }
+
+  function renderAutoMenu() {
+    autoMenu.innerHTML = '';
+    AUTO_COUNTS.forEach(n => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = String(n);
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        auto.selected = n;
+        autoMenu.hidden = true;
+        renderActionLabels();
+      });
+      autoMenu.appendChild(b);
+    });
+  }
+
+  function renderModeButtons() {
+    realBtn.classList.toggle('active', currentMode === 'real');
+    demoBtn.classList.toggle('active', currentMode === 'demo');
+  }
+
+  function renderAudioButtons() {
+    soundBtn.classList.toggle('on', soundEnabled);
+    soundBtn.setAttribute('aria-pressed', String(soundEnabled));
+    soundBtn.innerHTML = soundEnabled ? `🔊 <span>${tr('soundOn')}</span>` : `🔇 <span>${tr('soundOff')}</span>`;
+    musicBtn.classList.toggle('on', musicEnabled);
+    musicBtn.setAttribute('aria-pressed', String(musicEnabled));
+    musicBtn.innerHTML = musicEnabled ? `♫ <span>${tr('musicOn')}</span>` : `♩ <span>${tr('musicOff')}</span>`;
   }
 
   function boardMetrics() {
@@ -128,7 +236,6 @@
     ctx.fillStyle = g;
     ctx.fillRect(0,0,m.w,m.h);
 
-    // subtle guides
     ctx.strokeStyle = 'rgba(255,255,255,.035)';
     ctx.lineWidth = 1;
     for (let i=0;i<SLOTS;i++) {
@@ -136,7 +243,6 @@
       ctx.beginPath(); ctx.moveTo(x,m.boardTop); ctx.lineTo(x,m.slotY); ctx.stroke();
     }
 
-    // pegs: 1,2,...8
     for (let r=0;r<ROWS;r++) {
       const y = m.boardTop + r*m.rowGap;
       for (let j=0;j<=r;j++) {
@@ -152,7 +258,6 @@
       }
     }
 
-    // slots
     const slotW = m.gap * .86;
     for (let i=0;i<SLOTS;i++) {
       const x = m.cx + (i-(SLOTS-1)/2)*m.gap;
@@ -190,7 +295,6 @@
   function buildPath(slotIndex) {
     const m = boardMetrics();
     const steps = Array(slotIndex).fill(1).concat(Array(ROWS-slotIndex).fill(0));
-    // Shuffle while preserving the exact number of rights => exact target slot.
     for (let i=steps.length-1;i>0;i--) {
       const j = Math.floor(Math.random()*(i+1)); [steps[i],steps[j]]=[steps[j],steps[i]];
     }
@@ -218,11 +322,77 @@
     return {x,y,row:b.row};
   }
 
+  function ensureAudio() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      try { audioCtx = new AC(); } catch (_) { return null; }
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{});
+    return audioCtx;
+  }
+
+  function tone(freq, duration, volume, type='sine', delay=0) {
+    const ac = ensureAudio();
+    if (!ac) return;
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    const start = ac.currentTime + delay;
+    const end = start + duration;
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, start);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, volume), start + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, end);
+    osc.connect(gain); gain.connect(ac.destination);
+    osc.start(start); osc.stop(end + 0.03);
+  }
+
+  function playPegSound(row) {
+    if (!soundEnabled) return;
+    const vol = Number(audioCfg.soundVolume ?? .22) * .32;
+    tone(520 + row*34, .055, vol, 'triangle');
+  }
+
+  function playLandingSound(win) {
+    if (!soundEnabled) return;
+    const vol = Number(audioCfg.soundVolume ?? .22);
+    if (win > 0) {
+      tone(523.25,.12,vol*.55,'triangle');
+      tone(659.25,.16,vol*.48,'triangle',.09);
+      tone(783.99,.22,vol*.42,'triangle',.19);
+    } else {
+      tone(220,.14,vol*.28,'sine');
+      tone(174.61,.18,vol*.22,'sine',.08);
+    }
+  }
+
+  function startMusic() {
+    if (!musicEnabled || musicTimer) return;
+    ensureAudio();
+    const notes = [196,246.94,293.66,246.94,220,261.63,329.63,261.63];
+    const pulse = () => {
+      if (!musicEnabled) return;
+      const vol = Number(audioCfg.musicVolume ?? .055);
+      const f = notes[musicStep++ % notes.length];
+      tone(f,.72,vol,'sine');
+      tone(f*2,.46,vol*.22,'triangle',.05);
+    };
+    pulse();
+    musicTimer = setInterval(pulse, 760);
+  }
+
+  function stopMusic() {
+    if (musicTimer) clearInterval(musicTimer);
+    musicTimer = null;
+  }
+
   function startDrop(ticket) {
     currentTicket = ticket;
     path = buildPath(ticket.scenario-1);
     ball = { ...path[0], r:10 };
     highlightRow = -1;
+    lastSoundRow = -1;
     animStart = performance.now();
     setState('dropping');
     setStatus(tr('dropping'));
@@ -234,9 +404,27 @@
     const p = samplePath(path,t);
     ball.x=p.x;ball.y=p.y;
     highlightRow = p.row >=0 && p.row<ROWS ? p.row : -1;
+    if (highlightRow >= 0 && highlightRow !== lastSoundRow) {
+      lastSoundRow = highlightRow;
+      playPegSound(highlightRow);
+    }
     drawBoard();
     if (t<1) requestAnimationFrame(animateDrop);
     else finishRound();
+  }
+
+  function historyKey(mode=currentMode) { return `x2_plinko_tickets_${mode}`; }
+  function getHistory(mode=currentMode) {
+    try {
+      const list = JSON.parse(localStorage.getItem(historyKey(mode)) || '[]');
+      return Array.isArray(list) ? list : [];
+    } catch (_) { return []; }
+  }
+  function saveHistory(ticket, mode=currentMode) {
+    if (!ticket?.ticketId) return;
+    const list = getHistory(mode).filter(x => x && x.ticketId !== ticket.ticketId);
+    list.unshift({ticketId:String(ticket.ticketId),win:Number(ticket.win||0)});
+    try { localStorage.setItem(historyKey(mode), JSON.stringify(list.slice(0,HISTORY_LIMIT))); } catch (_) {}
   }
 
   function finishRound() {
@@ -253,6 +441,10 @@
     resultEl.textContent=win>0 ? `${fmt(win)} ${currencyDisplay}` : tr('noWin');
     resultEl.classList.remove('show'); void resultEl.offsetWidth; resultEl.classList.add('show');
     drawBoard();
+    playLandingSound(win);
+    saveHistory(currentTicket, currentMode);
+    if (!infoModal.hidden && currentInfoTab === 'tickets') renderInfoContent();
+
     window.X2LMS.emit('X2_GAME_ROUND_COMPLETE', {
       gameId,
       ticketId:currentTicket.ticketId,
@@ -263,10 +455,25 @@
       currency,
       language
     });
+
+    if (auto.running) {
+      auto.completed += 1;
+      renderActionLabels();
+      if (auto.stopRequested || auto.completed >= auto.total) {
+        endAutoplay();
+      } else {
+        auto.timer = setTimeout(() => {
+          auto.timer = null;
+          requestRound(true);
+        }, win > 0 ? 1050 : 700);
+      }
+    }
   }
 
-  async function requestRound() {
+  async function requestRound(fromAuto=false) {
     if (!['idle','settled','error'].includes(state)) return;
+    if (!fromAuto && auto.running) return;
+    ensureAudio();
     resultEl.classList.remove('show');
     resultEl.textContent='';
     setState('requesting');
@@ -291,14 +498,133 @@
       setState('error');
       const msg=err.code==='INSUFFICIENT_FUNDS'?tr('insufficient'):tr('error');
       setStatus(msg);
+      if (auto.running) endAutoplay();
       window.X2LMS.emit('X2_GAME_ERROR', {
         stage:'newGame', code:err.code||'NEW_GAME_ERROR', message:err.message||String(err)
       });
     }
   }
 
+  function startAutoplay() {
+    if (!auto.selected || isBusy() || auto.running) return;
+    auto.running = true;
+    auto.total = auto.selected;
+    auto.completed = 0;
+    auto.stopRequested = false;
+    autoMenu.hidden = true;
+    renderControlsState();
+    requestRound(true);
+  }
+
+  function endAutoplay() {
+    if (auto.timer) clearTimeout(auto.timer);
+    auto.timer = null;
+    auto.running = false;
+    auto.stopRequested = false;
+    auto.selected = null;
+    auto.total = 0;
+    auto.completed = 0;
+    renderControlsState();
+  }
+
+  function requestStopAutoplay() {
+    if (!auto.running) return;
+    auto.stopRequested = true;
+    if (auto.timer) {
+      clearTimeout(auto.timer);
+      auto.timer = null;
+      endAutoplay();
+      return;
+    }
+    renderActionLabels();
+  }
+
+  async function switchMode(nextMode) {
+    if (isBusy() || auto.running || currentMode === nextMode) return;
+    const previousMode = currentMode;
+    try {
+      ensureAudio();
+      window.X2LMS.setMode(nextMode);
+      setState('boot');
+      setStatus('');
+      currentTicket = null;
+      ball = null;
+      path = null;
+      highlightRow = -1;
+      resultEl.classList.remove('show');
+      resultEl.textContent = '';
+      ticketEl.textContent = `${tr('ticket')}: —`;
+      currentMode = nextMode;
+      const b = await window.X2LMS.getBalance({currency});
+      balance = Number(b.balance);
+      if (b.currency) currency=String(b.currency).toUpperCase();
+      if (b.currencyDisplay) currencyDisplay=String(b.currencyDisplay);
+      renderHeader(); renderDenoms(); renderModeButtons();
+      setState('idle');
+      drawBoard();
+      window.X2LMS.emit('X2_GAME_MODE_CHANGED', {gameId, mode:currentMode.toUpperCase(), currency, language});
+    } catch (err) {
+      console.warn('[PLINKO] mode switch failed',err);
+      try { window.X2LMS.setMode(previousMode); } catch (_) {}
+      const msg = err.code === 'REAL_REQUIRES_LMS' ? tr('realRequires') : tr('modeError');
+      setStatus(msg);
+      currentMode = previousMode;
+      renderModeButtons();
+      if (state === 'boot') setState('idle');
+    }
+  }
+
+  function renderInfoTabs() {
+    const labels = {payouts:tr('payouts'),how:tr('how'),tickets:tr('tickets')};
+    [...infoTabs.querySelectorAll('button[data-tab]')].forEach(b => {
+      b.textContent = labels[b.dataset.tab] || b.dataset.tab;
+      b.classList.toggle('active', b.dataset.tab === currentInfoTab);
+    });
+  }
+
+  function renderInfoContent() {
+    if (currentInfoTab === 'payouts') {
+      const mults = Array.isArray(CFG.demoMultipliers) ? CFG.demoMultipliers : [10,2,.5,0,.2,0,.5,2,10];
+      infoContent.innerHTML = `
+        <h3>${escapeHtml(tr('payouts'))}</h3>
+        <div class="payout-list">
+          ${mults.slice(0,SLOTS).map((m,i)=>`<div class="payout-row"><span>${escapeHtml(tr('slot'))} ${i+1}</span><strong>${escapeHtml(fmtMult(m))}</strong></div>`).join('')}
+        </div>
+        <p class="muted">${escapeHtml(tr('payoutNote'))}</p>`;
+      return;
+    }
+    if (currentInfoTab === 'how') {
+      infoContent.innerHTML = `
+        <h3>${escapeHtml(tr('how'))}</h3>
+        <ol class="how-steps">
+          <li>${escapeHtml(tr('how1'))}</li>
+          <li>${escapeHtml(tr('how2'))}</li>
+          <li>${escapeHtml(tr('how3'))}</li>
+          <li>${escapeHtml(tr('how4'))}</li>
+          <li>${escapeHtml(tr('how5'))}</li>
+        </ol>
+        <p class="muted">${escapeHtml(tr('autoplayHint'))}</p>`;
+      return;
+    }
+    const list = getHistory(currentMode);
+    infoContent.innerHTML = `
+      <h3>${escapeHtml(tr('tickets'))} · ${currentMode.toUpperCase()}</h3>
+      ${list.length ? `<div class="ticket-list">${list.map(x=>`<div class="ticket-row"><span>${escapeHtml(x.ticketId)}</span><strong>${escapeHtml(fmt(x.win))}</strong></div>`).join('')}</div>` : `<p class="muted">${escapeHtml(tr('noTickets'))}</p>`}`;
+  }
+
+  function openInfo() {
+    currentInfoTab = 'payouts';
+    renderInfoTabs();
+    renderInfoContent();
+    infoModal.hidden = false;
+    window.X2LMS.emit('X2_GAME_HELP_REQUEST', {gameId, section:'info', language});
+  }
+
+  function closeInfo() { infoModal.hidden = true; }
+
   async function initGame() {
     setState('boot');
+    renderAutoMenu();
     drawBoard();
     try {
       window.X2LMS.emit('X2_GAME_READY', { gameId });
@@ -310,17 +636,21 @@
       denominations=(Array.isArray(settings.denominations)&&settings.denominations.length?settings.denominations:[25,50,100]).map(Number).filter(n=>n>0);
       stake=Number(settings.denomination||denominations[0]);
       if(!denominations.includes(stake)) stake=denominations[0];
+      currentMode=window.X2LMS.isDemo()?'demo':'real';
       const b=await window.X2LMS.getBalance({currency});
       balance=Number(b.balance);
       if(b.currency) currency=String(b.currency).toUpperCase();
       if(b.currencyDisplay) currencyDisplay=String(b.currencyDisplay);
-      modeBadge.textContent=window.X2LMS.isDemo()?'DEMO':'REAL';
-      renderHeader();renderDenoms();
+      renderHeader();renderDenoms();renderModeButtons();renderInfoTabs();
       setState('idle');
       window.X2LMS.emit('X2_GAME_BALANCE_LOADED', {
         gameId,balance,currency,currencyDisplay,language,denominations
       });
       drawBoard();
+      if (musicEnabled) {
+        const startAfterGesture = () => { startMusic(); window.removeEventListener('pointerdown',startAfterGesture); };
+        window.addEventListener('pointerdown',startAfterGesture,{once:true});
+      }
     } catch(err) {
       console.error('[PLINKO] init failed',err);
       setState('error');
@@ -329,7 +659,39 @@
     }
   }
 
-  playBtn.addEventListener('click',requestRound);
+  newGameBtn.addEventListener('click',()=>requestRound(false));
+  autoBtn.addEventListener('click',(e)=>{
+    e.stopPropagation();
+    ensureAudio();
+    if (auto.running) { requestStopAutoplay(); return; }
+    if (auto.selected) { startAutoplay(); return; }
+    if (isBusy()) return;
+    autoMenu.hidden = !autoMenu.hidden;
+  });
+  document.addEventListener('click',(e)=>{ if (!autoMenu.hidden && !autoMenu.contains(e.target) && e.target !== autoBtn) autoMenu.hidden=true; });
+  realBtn.addEventListener('click',()=>switchMode('real'));
+  demoBtn.addEventListener('click',()=>switchMode('demo'));
+  infoBtn.addEventListener('click',openInfo);
+  infoClose.addEventListener('click',closeInfo);
+  infoModal.addEventListener('click',(e)=>{ if(e.target===infoModal) closeInfo(); });
+  infoTabs.addEventListener('click',(e)=>{
+    const b=e.target.closest('button[data-tab]');
+    if(!b)return;
+    currentInfoTab=b.dataset.tab;
+    renderInfoTabs();renderInfoContent();
+    window.X2LMS.emit('X2_GAME_HELP_REQUEST', {gameId, section:currentInfoTab, language});
+  });
+  soundBtn.addEventListener('click',()=>{
+    ensureAudio();
+    soundEnabled=!soundEnabled;saveBool('x2_plinko_sound',soundEnabled);renderAudioButtons();
+    if(soundEnabled) tone(660,.09,Number(audioCfg.soundVolume??.22)*.35,'triangle');
+  });
+  musicBtn.addEventListener('click',()=>{
+    ensureAudio();
+    musicEnabled=!musicEnabled;saveBool('x2_plinko_music',musicEnabled);renderAudioButtons();
+    if(musicEnabled) startMusic(); else stopMusic();
+  });
   window.addEventListener('resize',()=>drawBoard());
+  window.addEventListener('keydown',(e)=>{ if(e.key==='Escape'&&!infoModal.hidden)closeInfo(); });
   initGame();
 })();

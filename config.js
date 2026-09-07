@@ -11,6 +11,16 @@ window.X2_GAME_CONFIG = {
   demoCurrency: 'KGS',
   demoCurrencyDisplay: 'сом',
 
+  // Интерфейс как в Чуко.
+  autoPlayCounts: [5, 10, 20, 50],
+  localTicketHistoryLimit: 5,
+  audio: {
+    soundEnabled: true,
+    musicEnabled: false,
+    soundVolume: 0.22,
+    musicVolume: 0.055
+  },
+
   // LMS_API.md v19 / Softloto PayTicket.
   apiBase: 'https://dev.superloto.kg',
   endpoint: '/api/Lotto.Users.cls',

@@ -1,6 +1,6 @@
 # PLINKO — LMS API contract
 
-Игра использует тот же frontend adapter contract, что Чуко / Алтын Хан.
+Игра использует тот же основной frontend adapter contract, что Чуко / Алтын Хан.
 
 ## Init
 
@@ -61,6 +61,22 @@ https://dev.superloto.kg/api/Lotto.Users.cls?Method=PayTicket&gameId=137&amount=
 
 В REAL frontend не вычисляет приз и не заменяет scenario.
 
+## Автоигра
+
+Дополнительного LMS endpoint не требуется.
+
+Каждый раунд автоигры вызывает обычный `PayTicket` отдельно. Следующий билет запрашивается только после завершения визуализации предыдущего.
+
+При `Стоп` уже купленный/запущенный билет завершается, новый `PayTicket` не отправляется.
+
+## REAL / DEMO
+
+Переключатель REAL/DEMO находится во frontend.
+
+- DEMO использует локальный виртуальный баланс и не вызывает `PayTicket`.
+- REAL использует обычный LMS `PayTicket`.
+- standalone-сборка с `mock:true` не включает REAL без LMS-контекста/сессии.
+
 ## Events
 
 - `X2_GAME_READY`
@@ -68,4 +84,6 @@ https://dev.superloto.kg/api/Lotto.Users.cls?Method=PayTicket&gameId=137&amount=
 - `X2_GAME_DENOMINATION_CHANGED`
 - `X2_GAME_TICKET_READY`
 - `X2_GAME_ROUND_COMPLETE`
+- `X2_GAME_MODE_CHANGED`
+- `X2_GAME_HELP_REQUEST`
 - `X2_GAME_ERROR`

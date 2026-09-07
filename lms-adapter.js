@@ -8,6 +8,7 @@
   let init = null;
   let initResolver = null;
   let initRejecter = null;
+  let runtimeMode = null;
   let demoIndex = 0;
   let demoBalance = Number(cfg.demoBalance ?? 10000);
 
@@ -65,10 +66,38 @@
     return out;
   }
 
-  function isDemo(settings = init) {
+  function resolvedMode(settings = init) {
+    if (runtimeMode) return runtimeMode;
     const urlMode = String(params.get('mode') || params.get('X2_LMS_MODE') || '').toLowerCase();
     const mode = String(urlMode || settings?.mode || '').toLowerCase();
-    return mode === 'demo' || (!mode && !!cfg.mock);
+    if (mode === 'real' || mode === 'demo') return mode;
+    return cfg.mock ? 'demo' : 'real';
+  }
+
+  function isDemo(settings = init) {
+    return resolvedMode(settings) === 'demo';
+  }
+
+  function canUseReal() {
+    const settings = init || readUrlInit();
+    const urlMode = String(params.get('mode') || params.get('X2_LMS_MODE') || '').toLowerCase();
+    return urlMode === 'real' || !cfg.mock || !!settings?.session || !!settings?.accessToken || String(settings?.mode || '').toLowerCase() === 'real';
+  }
+
+  function setMode(mode) {
+    const next = String(mode || '').toLowerCase();
+    if (!['real','demo'].includes(next)) {
+      const err = new Error('INVALID_MODE');
+      err.code = 'INVALID_MODE';
+      throw err;
+    }
+    if (next === 'real' && !canUseReal()) {
+      const err = new Error('REAL_REQUIRES_LMS');
+      err.code = 'REAL_REQUIRES_LMS';
+      throw err;
+    }
+    runtimeMode = next;
+    return next;
   }
 
   window.addEventListener('message', (event) => {
@@ -76,7 +105,7 @@
     const data = event.data || {};
     if (data.type !== 'X2_LMS_INIT') return;
     init = mergeInit(readUrlInit(), data);
-    if (Number.isFinite(Number(init.balance))) demoBalance = Number(init.balance);
+    if (Number.isFinite(Number(init.balance)) && resolvedMode(init) === 'demo') demoBalance = Number(init.balance);
     if (initResolver) {
       initResolver(init);
       initResolver = null;
@@ -267,6 +296,9 @@
     createTicket,
     emit: post,
     isDemo: () => isDemo(init),
+    getMode: () => resolvedMode(init),
+    setMode,
+    canUseReal,
     getRawInit: () => init
   };
 })();
