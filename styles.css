@@ -61,3 +61,145 @@ button{font:inherit}
 .how-steps{margin:0;padding-left:20px}.how-steps li{margin:8px 0}
 @media (max-width:430px){.app{padding:10px 10px calc(14px + env(safe-area-inset-bottom));gap:8px}.x2{width:46px;height:46px}.title{font-size:22px}.balance-card{min-width:112px;padding:8px 10px}.board-card,#board{min-height:430px}.action-btn{height:52px;font-size:15px}.lowerbar{grid-template-columns:1fr}.ticket{text-align:left}.tool-btn{padding:0 6px;font-size:9px}.info-tabs button{font-size:10px;padding:4px}}
 @media (max-height:760px){.board-card,#board{min-height:395px}.app{gap:7px}.action-btn{height:49px}.x2{width:44px;height:44px}.title{font-size:21px}.denom{padding:7px 12px}.status{min-height:13px}}
+
+/* v1.3 — нижний блок управления в компоновке Чуко */
+.controls{
+  gap:8px;
+  padding-top:2px;
+}
+.action-row{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:10px;
+}
+.action-row > .action-btn,
+.action-row > .auto-wrap{
+  flex:0 1 220px;
+}
+.action-btn{
+  height:50px;
+  border-radius:25px;
+  font-size:20px;
+  text-transform:none;
+  letter-spacing:0;
+}
+.action-btn.primary{
+  background:linear-gradient(180deg,#4267df 0%,#17338d 100%);
+  border:1px solid rgba(151,190,255,.85);
+  color:#fff;
+  box-shadow:inset 0 1px 10px rgba(255,255,255,.16),0 8px 22px rgba(0,0,0,.18);
+}
+.action-btn.secondary{
+  background:linear-gradient(180deg,#254ea9 0%,#17337e 100%);
+  border:1px solid rgba(219,230,60,.65);
+  color:var(--lime);
+  box-shadow:inset 0 1px 8px rgba(255,255,255,.10);
+}
+.action-btn.secondary.running{
+  color:var(--lime);
+  background:linear-gradient(180deg,#3158b9 0%,#1d3987 100%);
+}
+.selectors-row{
+  gap:7px;
+}
+.denom-wrap{
+  justify-content:center;
+}
+.denom-label{
+  display:none;
+}
+.denoms{
+  flex:0 1 auto;
+  justify-content:center;
+  gap:7px;
+}
+.denom{
+  min-width:68px;
+  padding:8px 16px;
+  border-radius:12px;
+  font-size:14px;
+}
+.balls-wrap{
+  justify-content:center;
+}
+.balls-label{
+  min-width:58px;
+  font-size:12px;
+  opacity:.72;
+}
+.balls-counts{
+  flex:0 1 auto;
+  justify-content:center;
+  gap:7px;
+}
+.ball-count{
+  min-width:58px;
+  padding:8px 13px;
+  border-radius:11px;
+  font-size:14px;
+}
+.lowerbar{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:10px;
+  align-items:center;
+  margin-top:1px;
+}
+.toolbar{
+  flex-wrap:nowrap;
+  gap:6px;
+}
+.mode-toggle button{
+  height:32px;
+  min-width:47px;
+  padding:0 7px;
+}
+.tool-btn{
+  height:32px;
+  min-width:46px;
+  padding:0 9px;
+}
+#soundBtn,#musicBtn{
+  width:42px;
+  min-width:42px;
+  padding:0;
+  font-size:17px;
+}
+#soundBtn span,#musicBtn span{
+  display:none;
+}
+.ticket{
+  text-align:right;
+  font-size:14px;
+  line-height:1.1;
+  font-weight:850;
+  opacity:.92;
+  color:#fff;
+  max-width:190px;
+}
+.status{
+  min-height:13px;
+  font-size:10px;
+}
+
+@media (max-width:430px){
+  .action-row{gap:8px}
+  .action-row > .action-btn,.action-row > .auto-wrap{flex-basis:190px}
+  .action-btn{height:48px;font-size:18px}
+  .denom{min-width:62px;padding:7px 13px}
+  .balls-label{min-width:52px}
+  .ball-count{min-width:52px;padding:7px 10px}
+  .lowerbar{grid-template-columns:minmax(0,1fr) auto;gap:6px}
+  .toolbar{gap:4px}
+  .mode-toggle button{min-width:40px;padding:0 5px;font-size:9px}
+  #infoBtn{min-width:50px;padding:0 7px;font-size:9px}
+  #soundBtn,#musicBtn{width:36px;min-width:36px;font-size:15px}
+  .ticket{font-size:12px;max-width:145px}
+}
+
+@media (max-width:360px){
+  .action-btn{font-size:16px}
+  .balls-label{display:none}
+  .ticket{font-size:11px;max-width:118px}
+}
