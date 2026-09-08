@@ -16,6 +16,10 @@ window.X2_GAME_CONFIG = {
   ballCounts: [1, 5, 10, 15],
   defaultBallCount: 1,
   ballLaunchGapMs: 95,
+  lototron: {
+    enabled: true,
+    spinMs: 650
+  },
   localTicketHistoryLimit: 5,
   audio: {
     soundEnabled: true,

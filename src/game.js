@@ -37,11 +37,13 @@
   const BALL_COUNTS = Array.isArray(CFG.ballCounts) && CFG.ballCounts.length
     ? CFG.ballCounts.map(Number).filter(n => Number.isInteger(n) && n > 0 && n <= 30)
     : [1,5,10,15];
+  const LOTOTRON = CFG.lototron || {};
+  const FEEDER_SPIN_MS = Math.max(0, Number(LOTOTRON.spinMs ?? 650));
 
   const I18N = {
     RU: {
       balance:'Баланс', stake:'Номинал', balls:'Шары', newGame:'НОВАЯ ИГРА', auto:'АВТОИГРА', start:'СТАРТ', stop:'СТОП', stopping:'ОСТАНОВКА', loading:'Загрузка…',
-      buying:'Получаем билет…', dropping:'Шар падает…', droppingMany:'Падают шары…', ticket:'Билет', win:'Выигрыш', noWin:'Без выигрыша', error:'Не удалось начать игру', insufficient:'Недостаточно средств',
+      buying:'Получаем билет…', mixing:'Лототрон перемешивает шары…', dropping:'Шар падает…', droppingMany:'Падают шары…', ticket:'Билет', win:'Выигрыш', noWin:'Без выигрыша', error:'Не удалось начать игру', insufficient:'Недостаточно средств',
       info:'Инфо', payouts:'Таблица выплат', how:'Как играть', tickets:'Мои билеты', soundOn:'Звук вкл', soundOff:'Звук выкл', musicOn:'Музыка вкл', musicOff:'Музыка выкл',
       slot:'Ячейка', noTickets:'Завершённых билетов пока нет.', realRequires:'REAL доступен при запуске игры из LMS.', modeError:'Не удалось переключить режим.',
       how1:'Выберите номинал билета и количество шаров: 1, 5, 10 или 15.', how2:'Нажмите «Новая игра».', how3:'LMS формирует один билет и заранее возвращает сценарий и общий выигрыш.', how4:'Plinko внутри этого одного билета распределяет выбранное количество шаров по ячейкам. Траектория каждого шара визуально случайная, но общий результат соответствует билету LMS.', how5:'После падения последнего шара показывается общий результат и обновляется баланс.',
@@ -50,7 +52,7 @@
     },
     KG: {
       balance:'Баланс', stake:'Номинал', balls:'Шарлар', newGame:'ЖАҢЫ ОЮН', auto:'АВТООЮН', start:'СТАРТ', stop:'ТОКТОТ', stopping:'ТОКТОТУУ', loading:'Жүктөлүүдө…',
-      buying:'Билет алынууда…', dropping:'Шар түшүп жатат…', droppingMany:'Шарлар түшүп жатат…', ticket:'Билет', win:'Утуш', noWin:'Утуш жок', error:'Оюн башталган жок', insufficient:'Каражат жетишсиз',
+      buying:'Билет алынууда…', mixing:'Лототрон шарларды аралаштырууда…', dropping:'Шар түшүп жатат…', droppingMany:'Шарлар түшүп жатат…', ticket:'Билет', win:'Утуш', noWin:'Утуш жок', error:'Оюн башталган жок', insufficient:'Каражат жетишсиз',
       info:'Инфо', payouts:'Төлөмдөр', how:'Кантип ойнойт', tickets:'Менин билеттерим', soundOn:'Үн күйүк', soundOff:'Үн өчүк', musicOn:'Музыка күйүк', musicOff:'Музыка өчүк',
       slot:'Уяча', noTickets:'Аяктаган билеттер азырынча жок.', realRequires:'REAL режими LMS аркылуу иштетилгенде жеткиликтүү.', modeError:'Режимди которуу мүмкүн болгон жок.',
       how1:'Билеттин номиналын жана шарлардын санын тандаңыз: 1, 5, 10 же 15.', how2:'«Жаңы оюн» баскычын басыңыз.', how3:'LMS бир билетти түзүп, сценарий менен жалпы утушту алдын ала кайтарат.', how4:'Plinko ошол бир билеттин ичинде шарларды уячаларга бөлүштүрөт. Ар бир шардын жолу туш келди көрүнөт, бирок жалпы жыйынтык LMS билетине туура келет.', how5:'Акыркы шар түшкөндөн кийин жалпы жыйынтык көрсөтүлүп, баланс жаңыртылат.',
@@ -242,7 +244,8 @@
     }
     ctx.setTransform(dpr,0,0,dpr,0,0);
     const pad = Math.max(28, w*0.07);
-    const boardTop = Math.max(72, h*0.09);
+    // Оставляем заметную верхнюю зону под лототрон, не уменьшая игровое поле слишком сильно.
+    const boardTop = Math.max(112, Math.min(142, h*0.19));
     const slotH = Math.max(54, h*0.085);
     const slotY = h - slotH - 24;
     const rowGap = (slotY - boardTop - 26) / ROWS;
@@ -254,6 +257,102 @@
     const a = Array.isArray(CFG.demoMultipliers) && CFG.demoMultipliers.length === SLOTS
       ? CFG.demoMultipliers : [10,2,.5,0,.2,0,.5,2,10];
     return Number(a[i] ?? 0);
+  }
+
+  function feederMetrics(m) {
+    const r = Math.max(36, Math.min(46, m.w*0.095));
+    const cy = Math.max(r+8, m.boardTop-r-31);
+    return {
+      cx:m.cx,
+      cy,
+      r,
+      neckTop:cy+r*.68,
+      neckBottom:m.boardTop-26,
+      outletY:m.boardTop-20
+    };
+  }
+
+  function pendingFeederBalls(now) {
+    if (state !== 'dropping' || !balls.length) return selectedBallCount;
+    return balls.reduce((n,b)=>n+(now < b.launchAt ? 1 : 0),0);
+  }
+
+  function drawLototron(m, now) {
+    if (LOTOTRON.enabled === false) return;
+    const f = feederMetrics(m);
+    const count = Math.max(0, Math.min(15, pendingFeederBalls(now)));
+    const spinning = state === 'dropping' && balls.length && now < Math.min(...balls.map(b=>b.launchAt));
+
+    ctx.save();
+    // Soft glow behind the machine.
+    const halo=ctx.createRadialGradient(f.cx,f.cy,2,f.cx,f.cy,f.r*2.15);
+    halo.addColorStop(0,'rgba(79,170,255,.23)');
+    halo.addColorStop(.58,'rgba(70,90,255,.08)');
+    halo.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=halo;ctx.fillRect(f.cx-f.r*2.4,f.cy-f.r*2.0,f.r*4.8,f.r*3.6);
+
+    // Funnel / neck beneath the glass drum.
+    ctx.beginPath();
+    ctx.moveTo(f.cx-f.r*.48,f.neckTop);
+    ctx.lineTo(f.cx-f.r*.20,f.neckBottom);
+    ctx.lineTo(f.cx+f.r*.20,f.neckBottom);
+    ctx.lineTo(f.cx+f.r*.48,f.neckTop);
+    ctx.closePath();
+    const neck=ctx.createLinearGradient(f.cx-f.r*.5,0,f.cx+f.r*.5,0);
+    neck.addColorStop(0,'#132760');neck.addColorStop(.45,'#55a5ff');neck.addColorStop(.52,'#d9f1ff');neck.addColorStop(.62,'#447dd6');neck.addColorStop(1,'#0a194b');
+    ctx.fillStyle=neck;ctx.fill();
+    ctx.strokeStyle='rgba(176,222,255,.72)';ctx.lineWidth=1.3;ctx.stroke();
+
+    // Glass chamber.
+    ctx.save();
+    ctx.shadowColor='rgba(63,161,255,.60)';ctx.shadowBlur=22;
+    ctx.beginPath();ctx.ellipse(f.cx,f.cy,f.r*1.08,f.r*.91,0,0,Math.PI*2);
+    const glass=ctx.createRadialGradient(f.cx-f.r*.32,f.cy-f.r*.42,3,f.cx,f.cy,f.r*1.15);
+    glass.addColorStop(0,'rgba(189,234,255,.24)');
+    glass.addColorStop(.42,'rgba(36,82,172,.20)');
+    glass.addColorStop(1,'rgba(5,17,70,.72)');
+    ctx.fillStyle=glass;ctx.fill();
+    ctx.shadowBlur=0;
+    ctx.lineWidth=3.2;ctx.strokeStyle='rgba(79,203,255,.92)';ctx.stroke();
+    ctx.beginPath();ctx.ellipse(f.cx,f.cy,f.r*.93,f.r*.77,0,0,Math.PI*2);
+    ctx.lineWidth=1.1;ctx.strokeStyle='rgba(235,250,255,.30)';ctx.stroke();
+    ctx.restore();
+
+    // Balls inside. They visibly swirl during the release sequence.
+    const palette=['#DBE63C','#53D9FF','#A687FF','#F7FFB2'];
+    for (let i=0;i<count;i++) {
+      const phase=i*2.399 + now*.0018*(spinning?2.5:1);
+      const ring=(i%4)/4;
+      const rr=f.r*(.16 + .48*ring);
+      const bx=f.cx+Math.cos(phase)*rr*.86 + Math.sin(i*1.7)*2.3;
+      const by=f.cy+Math.sin(phase*1.21)*rr*.55 + f.r*.17;
+      const br=Math.max(4.1,Math.min(6.8,f.r*.135));
+      ctx.save();ctx.shadowColor=palette[i%palette.length];ctx.shadowBlur=10;
+      const g=ctx.createRadialGradient(bx-br*.35,by-br*.4,1,bx,by,br*1.12);
+      g.addColorStop(0,'#fff');g.addColorStop(.26,palette[i%palette.length]);g.addColorStop(1,'#253378');
+      ctx.beginPath();ctx.arc(bx,by,br,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
+      ctx.restore();
+    }
+
+    // Central rotor gives the chamber a mechanical feel.
+    ctx.save();ctx.translate(f.cx,f.cy);ctx.rotate(now*.001*(spinning?2.4:.34));
+    ctx.strokeStyle='rgba(185,226,255,.32)';ctx.lineWidth=2.2;
+    for(let k=0;k<3;k++){ctx.rotate(Math.PI*2/3);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(f.r*.57,0);ctx.stroke();}
+    ctx.beginPath();ctx.arc(0,0,5.2,0,Math.PI*2);ctx.fillStyle='#DBE63C';ctx.fill();ctx.restore();
+
+    // Metallic base and green gate.
+    roundRect(f.cx-f.r*.63,f.neckTop-2,f.r*1.26,11,5);
+    ctx.fillStyle='rgba(13,29,87,.96)';ctx.fill();
+    ctx.strokeStyle='rgba(154,213,255,.56)';ctx.lineWidth=1;ctx.stroke();
+    roundRect(f.cx-16,f.neckBottom-4,32,11,5);
+    ctx.fillStyle='#DBE63C';ctx.fill();
+    ctx.shadowColor='rgba(219,230,60,.55)';ctx.shadowBlur=12;ctx.strokeStyle='rgba(255,255,255,.78)';ctx.stroke();ctx.shadowBlur=0;
+
+    // Small PLINKO badge.
+    ctx.font=`950 ${Math.max(10,Math.min(13,f.r*.27))}px Inter,system-ui,sans-serif`;
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#fff';
+    ctx.fillText('PLINKO',f.cx,f.cy-f.r*.98);
+    ctx.restore();
   }
 
   function drawBoard() {
@@ -282,18 +381,8 @@
       ctx.beginPath(); ctx.moveTo(x,m.boardTop-12); ctx.lineTo(x,m.slotY-4); ctx.stroke();
     }
 
-    // Top ball feeder / drop point.
-    const feederY = Math.max(31,m.boardTop*.42);
-    ctx.save();
-    ctx.shadowColor='rgba(72,151,255,.48)'; ctx.shadowBlur=18;
-    ctx.beginPath();ctx.arc(m.cx,feederY,18,0,Math.PI*2);
-    const fg=ctx.createRadialGradient(m.cx-5,feederY-6,2,m.cx,feederY,20);
-    fg.addColorStop(0,'#365dcc');fg.addColorStop(.68,'#132c83');fg.addColorStop(1,'#091851');
-    ctx.fillStyle=fg;ctx.fill();
-    ctx.lineWidth=2;ctx.strokeStyle='rgba(139,198,255,.78)';ctx.stroke();
-    ctx.shadowBlur=0;
-    ctx.beginPath();ctx.arc(m.cx,feederY,6,0,Math.PI*2);ctx.fillStyle='#DBE63C';ctx.fill();
-    ctx.restore();
+    // Visible lottery drum: the selected balls are mixed here and released through the gate.
+    drawLototron(m, performance.now());
 
     // Pegs: dark base + blue rim + pearl center for a 3D look.
     for (let r=0;r<ROWS;r++) {
@@ -396,8 +485,9 @@
       const j = Math.floor(Math.random()*(i+1)); [steps[i],steps[j]]=[steps[j],steps[i]];
     }
     let rights = 0;
-    const startJitter = (Math.random()-.5) * Math.min(12,m.gap*.22);
-    const pts = [{x:m.cx+startJitter,y:m.boardTop-m.rowGap*.78,row:-1}];
+    const startJitter = (Math.random()-.5) * Math.min(9,m.gap*.18);
+    const feeder = feederMetrics(m);
+    const pts = [{x:m.cx+startJitter,y:feeder.outletY,row:-1}];
     for (let r=0;r<ROWS;r++) {
       rights += steps[r];
       const localJitter = (Math.random()-.5) * Math.min(7,m.gap*.12);
@@ -516,6 +606,14 @@
     osc.start(start); osc.stop(end + 0.03);
   }
 
+  function playFeederSound() {
+    if (!soundEnabled) return;
+    const vol = Number(audioCfg.soundVolume ?? .22);
+    tone(130,.18,vol*.16,'sine');
+    tone(260,.13,vol*.12,'triangle',.08);
+    tone(390,.10,vol*.10,'triangle',.18);
+  }
+
   function playPegSound(row) {
     if (!soundEnabled) return;
     const vol = Number(audioCfg.soundVolume ?? .22) * .32;
@@ -567,7 +665,7 @@
     const radius = selectedBallCount >= 15 ? 7.2 : selectedBallCount >= 10 ? 8 : 9.5;
     balls = roundDistribution.map((slotIndex,i) => {
       const path = buildPath(slotIndex,Math.random());
-      const delay = i * launchGap + Math.random()*Math.min(55,launchGap*.6);
+      const delay = FEEDER_SPIN_MS + i * launchGap + Math.random()*Math.min(55,launchGap*.6);
       const duration = animDuration * (.88 + Math.random()*.26);
       return {
         slotIndex,
@@ -584,13 +682,17 @@
       };
     });
     setState('dropping');
-    setStatus(selectedBallCount > 1 ? `${tr('droppingMany')} ${selectedBallCount}` : tr('dropping'));
+    setStatus(FEEDER_SPIN_MS > 0 ? tr('mixing') : (selectedBallCount > 1 ? `${tr('droppingMany')} ${selectedBallCount}` : tr('dropping')));
+    playFeederSound();
     requestAnimationFrame(animateDrop);
   }
 
   function animateDrop(now) {
     activeRows = new Set();
     let allDone = true;
+    if (balls.length && now >= Math.min(...balls.map(b=>b.launchAt)) && statusEl.textContent === tr('mixing')) {
+      setStatus(selectedBallCount > 1 ? `${tr('droppingMany')} ${selectedBallCount}` : tr('dropping'));
+    }
     for (const b of balls) {
       if (now < b.launchAt) { allDone = false; continue; }
       b.visible = true;
